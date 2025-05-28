@@ -1,0 +1,485 @@
+using System;
+using System.Data;
+using Npgsql;
+
+class BookStore
+{
+    private readonly string _connectionString;
+
+    public BookStore(string connectionString)
+    {
+        _connectionString = connectionString;
+    }
+
+    // Метод для добавления книги
+    public void AddBook()
+    {
+        Console.WriteLine("\nДобавление новой книги:");
+        
+        Console.Write("Название: ");
+        string title = Console.ReadLine();
+        
+        Console.Write("Автор: ");
+        string author = Console.ReadLine();
+        
+        Console.Write("Жанр: ");
+        string genre = Console.ReadLine();
+        
+        Console.Write("Год публикации: ");
+        int year = int.Parse(Console.ReadLine());
+        
+        Console.Write("Количество страниц: ");
+        int pages = int.Parse(Console.ReadLine());
+        
+        Console.Write("Цена: ");
+        decimal price = decimal.Parse(Console.ReadLine());
+        
+        Console.Write("Доступна (да/нет): ");
+        bool isAvailable = Console.ReadLine().ToLower() == "да";
+        
+        Console.Write("Рейтинг (0-10): ");
+        decimal rating = decimal.Parse(Console.ReadLine());
+        
+        Console.Write("Описание: ");
+        string description = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                @"INSERT INTO Books (Title, Author, Genre, PublicationYear, Pages, Price, IsAvailable, Rating, Description)
+                  VALUES (@title, @author, @genre, @year, @pages, @price, @isAvailable, @rating, @description)", conn))
+            {
+                cmd.Parameters.AddWithValue("title", title);
+                cmd.Parameters.AddWithValue("author", author);
+                cmd.Parameters.AddWithValue("genre", genre);
+                cmd.Parameters.AddWithValue("year", year);
+                cmd.Parameters.AddWithValue("pages", pages);
+                cmd.Parameters.AddWithValue("price", price);
+                cmd.Parameters.AddWithValue("isAvailable", isAvailable);
+                cmd.Parameters.AddWithValue("rating", rating);
+                cmd.Parameters.AddWithValue("description", description);
+                
+                cmd.ExecuteNonQuery();
+            }
+        }
+        Console.WriteLine("Книга успешно добавлена!");
+    }
+
+    // Метод для обновления книги
+    public void UpdateBook()
+    {
+        Console.Write("\nВведите ID книги для обновления: ");
+        int id = int.Parse(Console.ReadLine());
+
+        Console.WriteLine("Введите новые значения (оставьте пустым, чтобы не менять):");
+        
+        Console.Write("Название: ");
+        string title = Console.ReadLine();
+        
+        Console.Write("Автор: ");
+        string author = Console.ReadLine();
+        
+        Console.Write("Жанр: ");
+        string genre = Console.ReadLine();
+        
+        Console.Write("Год публикации: ");
+        string yearInput = Console.ReadLine();
+        
+        Console.Write("Количество страниц: ");
+        string pagesInput = Console.ReadLine();
+        
+        Console.Write("Цена: ");
+        string priceInput = Console.ReadLine();
+        
+        Console.Write("Доступна (да/нет): ");
+        string availableInput = Console.ReadLine();
+        
+        Console.Write("Рейтинг (0-10): ");
+        string ratingInput = Console.ReadLine();
+        
+        Console.Write("Описание: ");
+        string description = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            var updates = new List<string>();
+            var cmd = new NpgsqlCommand();
+            cmd.Connection = conn;
+
+            if (!string.IsNullOrEmpty(title))
+            {
+                updates.Add("Title = @title");
+                cmd.Parameters.AddWithValue("title", title);
+            }
+            
+            if (!string.IsNullOrEmpty(author))
+            {
+                updates.Add("Author = @author");
+                cmd.Parameters.AddWithValue("author", author);
+            }
+            
+            if (!string.IsNullOrEmpty(genre))
+            {
+                updates.Add("Genre = @genre");
+                cmd.Parameters.AddWithValue("genre", genre);
+            }
+            
+            if (!string.IsNullOrEmpty(yearInput) && int.TryParse(yearInput, out int year))
+            {
+                updates.Add("PublicationYear = @year");
+                cmd.Parameters.AddWithValue("year", year);
+            }
+            
+            if (!string.IsNullOrEmpty(pagesInput) && int.TryParse(pagesInput, out int pages))
+            {
+                updates.Add("Pages = @pages");
+                cmd.Parameters.AddWithValue("pages", pages);
+            }
+            
+            if (!string.IsNullOrEmpty(priceInput) && decimal.TryParse(priceInput, out decimal price))
+            {
+                updates.Add("Price = @price");
+                cmd.Parameters.AddWithValue("price", price);
+            }
+            
+            if (!string.IsNullOrEmpty(availableInput))
+            {
+                bool isAvailable = availableInput.ToLower() == "да";
+                updates.Add("IsAvailable = @isAvailable");
+                cmd.Parameters.AddWithValue("isAvailable", isAvailable);
+            }
+            
+            if (!string.IsNullOrEmpty(ratingInput) && decimal.TryParse(ratingInput, out decimal rating))
+            {
+                updates.Add("Rating = @rating");
+                cmd.Parameters.AddWithValue("rating", rating);
+            }
+            
+            if (!string.IsNullOrEmpty(description))
+            {
+                updates.Add("Description = @description");
+                cmd.Parameters.AddWithValue("description", description);
+            }
+
+            if (updates.Count > 0)
+            {
+                cmd.CommandText = $"UPDATE Books SET {string.Join(", ", updates)} WHERE Id = @id";
+                cmd.Parameters.AddWithValue("id", id);
+                
+                int rowsAffected = cmd.ExecuteNonQuery();
+                Console.WriteLine(rowsAffected > 0 ? "Книга успешно обновлена!" : "Книга с таким ID не найдена.");
+            }
+            else
+            {
+                Console.WriteLine("Нечего обновлять.");
+            }
+        }
+    }
+
+    // Метод для удаления книги
+    public void DeleteBook()
+    {
+        Console.Write("\nВведите ID книги для удаления: ");
+        int id = int.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand("DELETE FROM Books WHERE Id = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("id", id);
+                int rowsAffected = cmd.ExecuteNonQuery();
+                Console.WriteLine(rowsAffected > 0 ? "Книга успешно удалена!" : "Книга с таким ID не найдена.");
+            }
+        }
+    }
+
+    // Метод для просмотра всех книг
+    public void ViewAllBooks()
+    {
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand("SELECT * FROM Books ORDER BY Title", conn))
+            using (var reader = cmd.ExecuteReader())
+            {
+                Console.WriteLine("\nСписок всех книг:");
+                Console.WriteLine("--------------------------------------------------------------------------------------------------");
+                Console.WriteLine("| ID  | Название (автор)                  | Жанр       | Год | Страниц | Цена   | Доступна | Рейтинг |");
+                Console.WriteLine("--------------------------------------------------------------------------------------------------");
+                
+                while (reader.Read())
+                {
+                    string title = reader["Title"].ToString();
+                    if (title.Length > 20) title = title.Substring(0, 17) + "...";
+                    
+                    string author = reader["Author"].ToString();
+                    if (author.Length > 10) author = author.Substring(0, 7) + "...";
+                    
+                    Console.WriteLine($"| {reader["Id"],3} | {title,-20} ({author,-10}) | {reader["Genre"],-10} | {reader["PublicationYear"],4} | {reader["Pages"],7} | {reader["Price"],6:C} | {(bool)reader["IsAvailable"] ? "Да": "Нет",8} | {reader["Rating"],7} |");
+                }
+                Console.WriteLine("--------------------------------------------------------------------------------------------------");
+            }
+        }
+    }
+
+    // Метод для просмотра книги по ID
+    public void ViewBookById()
+    {
+        Console.Write("\nВведите ID книги: ");
+        int id = int.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand("SELECT * FROM Books WHERE Id = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("id", id);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        Console.WriteLine("\nИнформация о книге:");
+                        Console.WriteLine($"ID: {reader["Id"]}");
+                        Console.WriteLine($"Название: {reader["Title"]}");
+                        Console.WriteLine($"Автор: {reader["Author"]}");
+                        Console.WriteLine($"Жанр: {reader["Genre"]}");
+                        Console.WriteLine($"Год публикации: {reader["PublicationYear"]}");
+                        Console.WriteLine($"Страниц: {reader["Pages"]}");
+                        Console.WriteLine($"Цена: {reader["Price"]:C}");
+                        Console.WriteLine($"Доступна: {(bool)reader["IsAvailable"] ? "Да" : "Нет"}");
+                        Console.WriteLine($"Рейтинг: {reader["Rating"]}");
+                        Console.WriteLine($"Описание: {reader["Description"]}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Книга с таким ID не найдена.");
+                    }
+                }
+            }
+        }
+    }
+
+    // Поиск книг по автору
+    public void SearchByAuthor()
+    {
+        Console.Write("\nВведите имя автора: ");
+        string author = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "SELECT * FROM Books WHERE Author ILIKE @author ORDER BY Title", conn))
+            {
+                cmd.Parameters.AddWithValue("author", $"%{author}%");
+                using (var reader = cmd.ExecuteReader())
+                {
+                    Console.WriteLine($"\nКниги автора '{author}':");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"{reader["Id"]}. {reader["Title"]} ({reader["PublicationYear"]}) - {reader["Price"]:C}");
+                    }
+                }
+            }
+        }
+    }
+
+    // Поиск книг по жанру
+    public void SearchByGenre()
+    {
+        Console.Write("\nВведите жанр: ");
+        string genre = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "SELECT * FROM Books WHERE Genre ILIKE @genre ORDER BY Title", conn))
+            {
+                cmd.Parameters.AddWithValue("genre", $"%{genre}%");
+                using (var reader = cmd.ExecuteReader())
+                {
+                    Console.WriteLine($"\nКниги жанра '{genre}':");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"{reader["Id"]}. {reader["Title"]} - {reader["Author"]} ({reader["PublicationYear"]})");
+                    }
+                }
+            }
+        }
+    }
+
+    // Поиск книг по году публикации
+    public void SearchByYear()
+    {
+        Console.Write("\nВведите год публикации: ");
+        int year = int.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "SELECT * FROM Books WHERE PublicationYear = @year ORDER BY Title", conn))
+            {
+                cmd.Parameters.AddWithValue("year", year);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    Console.WriteLine($"\nКниги {year} года:");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"{reader["Id"]}. {reader["Title"]} - {reader["Author"]} ({reader["Genre"]})");
+                    }
+                }
+            }
+        }
+    }
+
+    // Фильтрация книг по цене
+    public void FilterByPrice()
+    {
+        Console.Write("\nВведите максимальную цену: ");
+        decimal maxPrice = decimal.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "SELECT * FROM Books WHERE Price <= @maxPrice ORDER BY Price", conn))
+            {
+                cmd.Parameters.AddWithValue("maxPrice", maxPrice);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    Console.WriteLine($"\nКниги дешевле {maxPrice:C}:");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"{reader["Id"]}. {reader["Title"]} - {reader["Author"]} ({reader["Price"]:C})");
+                    }
+                }
+            }
+        }
+    }
+
+    // Средний рейтинг по жанрам
+    public void AverageRatingByGenre()
+    {
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "SELECT Genre, AVG(Rating) as AvgRating FROM Books GROUP BY Genre ORDER BY AvgRating DESC", conn))
+            using (var reader = cmd.ExecuteReader())
+            {
+                Console.WriteLine("\nСредний рейтинг по жанрам:");
+                while (reader.Read())
+                {
+                    Console.WriteLine($"{reader["Genre"],-15} - {reader["AvgRating"]:F1}");
+                }
+            }
+        }
+    }
+
+    // Общее количество страниц доступных книг
+    public void TotalPagesAvailable()
+    {
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "SELECT SUM(Pages) as TotalPages FROM Books WHERE IsAvailable = TRUE", conn))
+            {
+                var result = cmd.ExecuteScalar();
+                Console.WriteLine($"\nОбщее количество страниц в доступных книгах: {result ?? 0}");
+            }
+        }
+    }
+
+    // Самая дорогая и дешевая книга
+    public void FindPriceExtremes()
+    {
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            
+            // Самая дорогая книга
+            using (var cmd = new NpgsqlCommand(
+                "SELECT Title, Author, Price FROM Books ORDER BY Price DESC LIMIT 1", conn))
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    Console.WriteLine($"\nСамая дорогая книга: {reader["Title"]} - {reader["Author"]} ({reader["Price"]:C})");
+                }
+            }
+            
+            // Самая дешевая книга
+            using (var cmd = new NpgsqlCommand(
+                "SELECT Title, Author, Price FROM Books WHERE Price > 0 ORDER BY Price ASC LIMIT 1", conn))
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    Console.WriteLine($"Самая дешевая книга: {reader["Title"]} - {reader["Author"]} ({reader["Price"]:C})");
+                }
+            }
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        // Настройте свою строку подключения
+        string connectionString = "Host=localhost;Username=postgres;Password=yourpassword;Database=BookStore";
+        var store = new BookStore(connectionString);
+
+        while (true)
+        {
+            Console.WriteLine("\nМеню книжного магазина:");
+            Console.WriteLine("1. Добавить книгу");
+            Console.WriteLine("2. Обновить информацию о книге");
+            Console.WriteLine("3. Удалить книгу");
+            Console.WriteLine("4. Просмотреть все книги");
+            Console.WriteLine("5. Просмотреть книгу по ID");
+            Console.WriteLine("6. Поиск книг по автору");
+            Console.WriteLine("7. Поиск книг по жанру");
+            Console.WriteLine("8. Поиск книг по году");
+            Console.WriteLine("9. Фильтр по цене");
+            Console.WriteLine("10. Средний рейтинг по жанрам");
+            Console.WriteLine("11. Общее количество страниц");
+            Console.WriteLine("12. Самая дорогая/дешевая книга");
+            Console.WriteLine("0. Выход");
+
+            Console.Write("Выберите действие: ");
+            string choice = Console.ReadLine();
+
+            try
+            {
+                switch (choice)
+                {
+                    case "1": store.AddBook(); break;
+                    case "2": store.UpdateBook(); break;
+                    case "3": store.DeleteBook(); break;
+                    case "4": store.ViewAllBooks(); break;
+                    case "5": store.ViewBookById(); break;
+                    case "6": store.SearchByAuthor(); break;
+                    case "7": store.SearchByGenre(); break;
+                    case "8": store.SearchByYear(); break;
+                    case "9": store.FilterByPrice(); break;
+                    case "10": store.AverageRatingByGenre(); break;
+                    case "11": store.TotalPagesAvailable(); break;
+                    case "12": store.FindPriceExtremes(); break;
+                    case "0": return;
+                    default: Console.WriteLine("Неверный выбор."); break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+            }
+        }
+    }
+}
