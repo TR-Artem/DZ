@@ -1,0 +1,210 @@
+1 задание 
+
+using System;
+
+// Интерфейс стратегии доставки
+public interface IShippingStrategy
+{
+    decimal CalculateCost(decimal orderPrice, int distance);
+}
+
+// Фиксированная стоимость доставки
+public class FixedCostShipping : IShippingStrategy
+{
+    private readonly decimal _fixedCost;
+    
+    public FixedCostShipping(decimal fixedCost)
+    {
+        _fixedCost = fixedCost;
+    }
+    
+    public decimal CalculateCost(decimal orderPrice, int distance)
+    {
+        return _fixedCost;
+    }
+}
+
+// Процент от стоимости заказа
+public class PercentageShipping : IShippingStrategy
+{
+    private readonly decimal _percentage;
+    
+    public PercentageShipping(decimal percentage)
+    {
+        _percentage = percentage;
+    }
+    
+    public decimal CalculateCost(decimal orderPrice, int distance)
+    {
+        return orderPrice * _percentage / 100;
+    }
+}
+
+// Зависимость от расстояния
+public class DistanceBasedShipping : IShippingStrategy
+{
+    private readonly decimal _costPerKm;
+    
+    public DistanceBasedShipping(decimal costPerKm)
+    {
+        _costPerKm = costPerKm;
+    }
+    
+    public decimal CalculateCost(decimal orderPrice, int distance)
+    {
+        return distance * _costPerKm;
+    }
+}
+
+public class ShippingCalculator
+{
+    private IShippingStrategy _strategy;
+    
+    public void SetStrategy(IShippingStrategy strategy)
+    {
+        _strategy = strategy;
+    }
+    
+    public decimal CalculateShippingCost(decimal orderPrice, int distance)
+    {
+        if (_strategy == null)
+        {
+            throw new InvalidOperationException("Strategy not set");
+        }
+        return _strategy.CalculateCost(orderPrice, distance);
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        var calculator = new ShippingCalculator();
+        
+        Console.WriteLine("Выберите способ расчета доставки:");
+        Console.WriteLine("1 - Фиксированная стоимость");
+        Console.WriteLine("2 - Процент от стоимости");
+        Console.WriteLine("3 - Зависимость от расстояния");
+        
+        int choice = int.Parse(Console.ReadLine());
+        
+        switch (choice)
+        {
+            case 1:
+                calculator.SetStrategy(new FixedCostShipping(500));
+                break;
+            case 2:
+                calculator.SetStrategy(new PercentageShipping(10));
+                break;
+            case 3:
+                calculator.SetStrategy(new DistanceBasedShipping(50));
+                break;
+            default:
+                Console.WriteLine("Неверный выбор");
+                return;
+        }
+        
+        Console.Write("Введите стоимость заказа: ");
+        decimal orderPrice = decimal.Parse(Console.ReadLine());
+        
+        Console.Write("Введите расстояние (если применимо): ");
+        int distance = int.Parse(Console.ReadLine());
+        
+        decimal shippingCost = calculator.CalculateShippingCost(orderPrice, distance);
+        Console.WriteLine($"Итоговая стоимость доставки: {shippingCost}");
+    }
+}
+
+
+
+
+2 дазание 
+
+
+
+using System;
+using System.Threading;
+
+// Класс для аргументов события
+public class ServerEventArgs : EventArgs
+{
+    public string ServerName { get; }
+    public string Message { get; }
+    public DateTime Time { get; }
+    
+    public ServerEventArgs(string serverName, string message)
+    {
+        ServerName = serverName;
+        Message = message;
+        Time = DateTime.Now;
+    }
+}
+
+// Класс монитора сервера
+public class ServerMonitor
+{
+    public event EventHandler<ServerEventArgs> ServerDown;
+    
+    private readonly string _serverName;
+    private readonly Random _random = new Random();
+    
+    public ServerMonitor(string serverName)
+    {
+        _serverName = serverName;
+    }
+    
+    public void CheckServerStatus()
+    {
+        while (true)
+        {
+            // Эмуляция случайных проблем с сервером
+            if (_random.Next(0, 100) < 20) // 20% вероятность проблемы
+            {
+                string errorMessage = "Сервер недоступен";
+                OnServerDown(errorMessage);
+            }
+            
+            Thread.Sleep(3000); // Проверка каждые 3 секунды
+        }
+    }
+    
+    protected virtual void OnServerDown(string message)
+    {
+        ServerDown?.Invoke(this, new ServerEventArgs(_serverName, message));
+    }
+}
+
+// Классы уведомлений
+public static class Notifications
+{
+    public static void SendEmailNotification(object sender, ServerEventArgs e)
+    {
+        Console.WriteLine($"EMAIL: Сервер {e.ServerName} сообщает: {e.Message} в {e.Time}");
+    }
+    
+    public static void SendSmsNotification(object sender, ServerEventArgs e)
+    {
+        Console.WriteLine($"SMS: Внимание! Сервер {e.ServerName} - {e.Message} ({e.Time})");
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        var monitor = new ServerMonitor("MainDB");
+        
+        // Подписываем методы уведомлений на событие
+        monitor.ServerDown += Notifications.SendEmailNotification;
+        monitor.ServerDown += Notifications.SendSmsNotification;
+        
+        Console.WriteLine("Мониторинг сервера запущен. Нажмите Ctrl+C для остановки.");
+        
+        // Запускаем мониторинг в отдельном потоке
+        var monitoringThread = new Thread(monitor.CheckServerStatus);
+        monitoringThread.Start();
+        
+        // Ждем завершения (в реальном приложении можно добавить graceful shutdown)
+        monitoringThread.Join();
+    }
+}
