@@ -1,0 +1,344 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using Npgsql;
+
+class ElectronicsStore
+{
+    private readonly string _connectionString;
+
+    public ElectronicsStore(string connectionString)
+    {
+        _connectionString = connectionString;
+    }
+
+    // Методы для работы с продуктами
+    public void AddProduct()
+    {
+        Console.WriteLine("Добавление нового продукта:");
+        Console.Write("Название: ");
+        string name = Console.ReadLine();
+        Console.Write("Цена: ");
+        decimal price = decimal.Parse(Console.ReadLine());
+        Console.Write("ID категории: ");
+        int categoryId = int.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "INSERT INTO Products (Name, Price, CategoryId) VALUES (@name, @price, @categoryId)", conn))
+            {
+                cmd.Parameters.AddWithValue("name", name);
+                cmd.Parameters.AddWithValue("price", price);
+                cmd.Parameters.AddWithValue("categoryId", categoryId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        Console.WriteLine("Продукт успешно добавлен!");
+    }
+
+    public void UpdateProduct()
+    {
+        Console.Write("Введите ID продукта для обновления: ");
+        int id = int.Parse(Console.ReadLine());
+        Console.Write("Новое название (оставьте пустым, чтобы не менять): ");
+        string name = Console.ReadLine();
+        Console.Write("Новая цена (оставьте пустым, чтобы не менять): ");
+        string priceInput = Console.ReadLine();
+        Console.Write("Новый ID категории (оставьте пустым, чтобы не менять): ");
+        string categoryIdInput = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            var updates = new List<string>();
+            var parameters = new NpgsqlParameterCollection();
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                updates.Add("Name = @name");
+                cmd.Parameters.AddWithValue("name", name);
+            }
+
+            if (!string.IsNullOrEmpty(priceInput) && decimal.TryParse(priceInput, out decimal price))
+            {
+                updates.Add("Price = @price");
+                cmd.Parameters.AddWithValue("price", price);
+            }
+
+            if (!string.IsNullOrEmpty(categoryIdInput) && int.TryParse(categoryIdInput, out int categoryId))
+            {
+                updates.Add("CategoryId = @categoryId");
+                cmd.Parameters.AddWithValue("categoryId", categoryId);
+            }
+
+            if (updates.Count > 0)
+            {
+                string query = $"UPDATE Products SET {string.Join(", ", updates)} WHERE Id = @id";
+                using (var cmd = new NpgsqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("id", id);
+                    cmd.ExecuteNonQuery();
+                    Console.WriteLine("Продукт успешно обновлен!");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Нечего обновлять.");
+            }
+        }
+    }
+
+    public void DeleteProduct()
+    {
+        Console.Write("Введите ID продукта для удаления: ");
+        int id = int.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand("DELETE FROM Products WHERE Id = @id", conn))
+            {
+                cmd.Parameters.AddWithValue("id", id);
+                int affectedRows = cmd.ExecuteNonQuery();
+                Console.WriteLine(affectedRows > 0 ? "Продукт успешно удален!" : "Продукт с таким ID не найден.");
+            }
+        }
+    }
+
+    // Аналогичные методы для Categories, Customers и Orders
+    public void AddCategory()
+    {
+        Console.Write("Введите название категории: ");
+        string name = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand("INSERT INTO Categories (Name) VALUES (@name)", conn))
+            {
+                cmd.Parameters.AddWithValue("name", name);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        Console.WriteLine("Категория успешно добавлена!");
+    }
+
+    public void AddCustomer()
+    {
+        Console.WriteLine("Добавление нового клиента:");
+        Console.Write("Имя: ");
+        string firstName = Console.ReadLine();
+        Console.Write("Фамилия: ");
+        string lastName = Console.ReadLine();
+        Console.Write("Email: ");
+        string email = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "INSERT INTO Customers (FirstName, LastName, Email) VALUES (@firstName, @lastName, @email)", conn))
+            {
+                cmd.Parameters.AddWithValue("firstName", firstName);
+                cmd.Parameters.AddWithValue("lastName", lastName);
+                cmd.Parameters.AddWithValue("email", email);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        Console.WriteLine("Клиент успешно добавлен!");
+    }
+
+    public void AddOrder()
+    {
+        Console.Write("Введите ID клиента: ");
+        int customerId = int.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                "INSERT INTO Orders (CustomerId, Status) VALUES (@customerId, 'Pending') RETURNING Id", conn))
+            {
+                cmd.Parameters.AddWithValue("customerId", customerId);
+                int orderId = (int)cmd.ExecuteScalar();
+
+                bool addingProducts = true;
+                while (addingProducts)
+                {
+                    Console.Write("Введите ID продукта (или 0 для завершения): ");
+                    int productId = int.Parse(Console.ReadLine());
+                    if (productId == 0) break;
+
+                    Console.Write("Введите количество: ");
+                    int quantity = int.Parse(Console.ReadLine());
+
+                    using (var detailCmd = new NpgsqlCommand(
+                        "INSERT INTO OrderDetails (OrderId, ProductId, Quantity) VALUES (@orderId, @productId, @quantity)", conn))
+                    {
+                        detailCmd.Parameters.AddWithValue("orderId", orderId);
+                        detailCmd.Parameters.AddWithValue("productId", productId);
+                        detailCmd.Parameters.AddWithValue("quantity", quantity);
+                        detailCmd.ExecuteNonQuery();
+                    }
+                    Console.WriteLine("Продукт добавлен в заказ.");
+                }
+            }
+        }
+        Console.WriteLine("Заказ успешно создан!");
+    }
+
+    // 3. Поиск и фильтрация
+    public void FindOrdersByEmail()
+    {
+        Console.Write("Введите email клиента: ");
+        string email = Console.ReadLine();
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                @"SELECT o.Id, o.Date, o.Status, c.FirstName, c.LastName 
+                  FROM Orders o
+                  JOIN Customers c ON o.CustomerId = c.Id
+                  WHERE c.Email = @email", conn))
+            {
+                cmd.Parameters.AddWithValue("email", email);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    Console.WriteLine("\nНайденные заказы:");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"ID: {reader["Id"]}, Дата: {reader["Date"]}, Статус: {reader["Status"]}, Клиент: {reader["FirstName"]} {reader["LastName"]}");
+                    }
+                }
+            }
+        }
+    }
+
+    public void FilterProductsByPrice()
+    {
+        Console.Write("Введите максимальную цену: ");
+        decimal maxPrice = decimal.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                @"SELECT p.Id, p.Name, p.Price, c.Name as Category 
+                  FROM Products p
+                  JOIN Categories c ON p.CategoryId = c.Id
+                  WHERE p.Price < @maxPrice", conn))
+            {
+                cmd.Parameters.AddWithValue("maxPrice", maxPrice);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    Console.WriteLine("\nПродукты дешевле " + maxPrice + ":");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"ID: {reader["Id"]}, Название: {reader["Name"]}, Цена: {reader["Price"]}, Категория: {reader["Category"]}");
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Агрегация данных
+    public void CalculateOrderTotal()
+    {
+        Console.Write("Введите ID заказа: ");
+        int orderId = int.Parse(Console.ReadLine());
+
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                @"SELECT SUM(p.Price * od.Quantity) as Total
+                  FROM OrderDetails od
+                  JOIN Products p ON od.ProductId = p.Id
+                  WHERE od.OrderId = @orderId", conn))
+            {
+                cmd.Parameters.AddWithValue("orderId", orderId);
+                var result = cmd.ExecuteScalar();
+                decimal total = result is DBNull ? 0 : Convert.ToDecimal(result);
+                Console.WriteLine($"Общая сумма заказа {orderId}: {total:C}");
+            }
+        }
+    }
+
+    public void CalculateAveragePriceByCategory()
+    {
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            conn.Open();
+            using (var cmd = new NpgsqlCommand(
+                @"SELECT c.Name as Category, AVG(p.Price) as AvgPrice
+                  FROM Products p
+                  JOIN Categories c ON p.CategoryId = c.Id
+                  GROUP BY c.Name", conn))
+            {
+                using (var reader = cmd.ExecuteReader())
+                {
+                    Console.WriteLine("\nСредняя цена по категориям:");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"{reader["Category"]}: {reader["AvgPrice"]:C}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        // Настройте свою строку подключения
+        string connectionString = "Host=localhost;Username=postgres;Password=yourpassword;Database=ElectronicsStore";
+        var store = new ElectronicsStore(connectionString);
+
+        while (true)
+        {
+            Console.WriteLine("\nМеню:");
+            Console.WriteLine("1. Добавить продукт");
+            Console.WriteLine("2. Обновить продукт");
+            Console.WriteLine("3. Удалить продукт");
+            Console.WriteLine("4. Добавить категорию");
+            Console.WriteLine("5. Добавить клиента");
+            Console.WriteLine("6. Создать заказ");
+            Console.WriteLine("7. Найти заказы по email");
+            Console.WriteLine("8. Фильтровать продукты по цене");
+            Console.WriteLine("9. Вычислить сумму заказа");
+            Console.WriteLine("10. Средняя цена по категориям");
+            Console.WriteLine("0. Выход");
+
+            Console.Write("Выберите действие: ");
+            string choice = Console.ReadLine();
+
+            try
+            {
+                switch (choice)
+                {
+                    case "1": store.AddProduct(); break;
+                    case "2": store.UpdateProduct(); break;
+                    case "3": store.DeleteProduct(); break;
+                    case "4": store.AddCategory(); break;
+                    case "5": store.AddCustomer(); break;
+                    case "6": store.AddOrder(); break;
+                    case "7": store.FindOrdersByEmail(); break;
+                    case "8": store.FilterProductsByPrice(); break;
+                    case "9": store.CalculateOrderTotal(); break;
+                    case "10": store.CalculateAveragePriceByCategory(); break;
+                    case "0": return;
+                    default: Console.WriteLine("Неверный выбор."); break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+            }
+        }
+    }
+}
