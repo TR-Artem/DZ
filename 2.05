@@ -1,0 +1,162 @@
+using System;
+using System.Collections.Generic;
+
+class BookStackManager
+{
+    private Stack<string> bookStack = new Stack<string>();
+
+    public void AddBook(string title)
+    {
+        bookStack.Push(title);
+        Console.WriteLine($"Добавлена книга: \"{title}\"");
+    }
+
+    public void RemoveTopBook()
+    {
+        if (bookStack.Count > 0)
+        {
+            string removedBook = bookStack.Pop();
+            Console.WriteLine($"Убрана книга: \"{removedBook}\"");
+        }
+        else
+        {
+            Console.WriteLine("Стопка книг пуста.");
+        }
+    }
+
+    public void PeekTopBook()
+    {
+        if (bookStack.Count > 0)
+        {
+            Console.WriteLine($"Текущая книга: \"{bookStack.Peek()}\"");
+        }
+        else
+        {
+            Console.WriteLine("Стопка книг пуста.");
+        }
+    }
+
+    public void DisplayStack()
+    {
+        if (bookStack.Count == 0)
+        {
+            Console.WriteLine("Стопка книг пуста.");
+            return;
+        }
+
+        Console.WriteLine("Текущая стопка книг (сверху вниз):");
+        foreach (var book in bookStack)
+        {
+            Console.WriteLine($"- \"{book}\"");
+        }
+    }
+
+    public static void RunExample()
+    {
+        BookStackManager manager = new BookStackManager();
+        
+        manager.AddBook("Мастер и Маргарита");
+        manager.AddBook("1984");
+        manager.AddBook("Маленький принц");
+        
+        manager.RemoveTopBook();
+        manager.PeekTopBook();
+        
+        manager.DisplayStack();
+    }
+}
+
+
+
+// 4. управление инвентарем
+
+
+
+using System;
+using System.Collections.Generic;
+
+class InventoryManager
+{
+    private Dictionary<string, int> inventory = new Dictionary<string, int>();
+
+    public void AddItem(string itemName, int quantity)
+    {
+        if (inventory.ContainsKey(itemName))
+        {
+            inventory[itemName] += quantity;
+        }
+        else
+        {
+            inventory[itemName] = quantity;
+        }
+        Console.WriteLine($"Добавлен предмет: \"{itemName}\", количество: {quantity}");
+    }
+
+    public void RemoveItem(string itemName)
+    {
+        if (inventory.ContainsKey(itemName))
+        {
+            inventory[itemName]--;
+            
+            if (inventory[itemName] <= 0)
+            {
+                inventory.Remove(itemName);
+                Console.WriteLine($"Предмет \"{itemName}\" полностью удален из инвентаря.");
+            }
+            else
+            {
+                Console.WriteLine($"Удален один предмет \"{itemName}\". Осталось: {inventory[itemName]}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Предмет \"{itemName}\" не найден в инвентаре.");
+        }
+    }
+
+    public void DisplayInventory()
+    {
+        if (inventory.Count == 0)
+        {
+            Console.WriteLine("Инвентарь пуст.");
+            return;
+        }
+
+        Console.WriteLine("Текущий инвентарь:");
+        foreach (var item in inventory)
+        {
+            Console.WriteLine($"- \"{item.Key}\": {item.Value}");
+        }
+    }
+
+    public void SearchItem(string itemName)
+    {
+        if (inventory.TryGetValue(itemName, out int quantity))
+        {
+            Console.WriteLine($"Предмет \"{itemName}\" найден. Количество: {quantity}");
+        }
+        else
+        {
+            Console.WriteLine($"Предмет \"{itemName}\" не найден в инвентаре.");
+        }
+    }
+
+    public static void RunExample()
+    {
+        InventoryManager manager = new InventoryManager();
+        
+        // Инициализация инвентаря
+        manager.AddItem("Меч", 1);
+        manager.AddItem("Щит", 2);
+        manager.AddItem("Зелье здоровья", 5);
+        
+        // Добавление нового предмета
+        manager.AddItem("Зелье маны", 3);
+        
+        // Удаление предмета
+        manager.RemoveItem("Щит");
+        
+        // Просмотр инвентаря
+        manager.DisplayInventory();
+    }
+}
