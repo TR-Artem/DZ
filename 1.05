@@ -1,0 +1,78 @@
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        while (true)
+        {
+            Console.WriteLine("Выберите действие:");
+            Console.WriteLine("1. Определить тип осадков");
+            Console.WriteLine("2. Определить комфортность температуры");
+            Console.WriteLine("3. Выход");
+            
+            Console.Write("Ваш выбор: ");
+            string input = Console.ReadLine();
+            
+            if (!int.TryParse(input, out int choice))
+            {
+                Console.WriteLine("Пожалуйста, введите число от 1 до 3");
+                continue;
+            }
+            
+            switch (choice)
+            {
+                case 1:
+                    DeterminePrecipitationType();
+                    break;
+                case 2:
+                    DetermineTemperatureComfort();
+                    break;
+                case 3:
+                    Console.WriteLine("Программа завершает работу. До свидания!");
+                    return;
+                default:
+                    Console.WriteLine("Неверный выбор. Пожалуйста, введите число от 1 до 3");
+                    break;
+            }
+            
+            Console.WriteLine(); // Пустая строка для разделения
+        }
+    }
+    
+    static void DeterminePrecipitationType()
+    {
+        Console.Write("Введите уровень осадков (в мм): ");
+        if (double.TryParse(Console.ReadLine(), out double precipitation))
+        {
+            if (precipitation < 0.1)
+                Console.WriteLine("Без осадков");
+            else if (precipitation <= 2.5)
+                Console.WriteLine("Небольшой дождь");
+            else if (precipitation <= 17)
+                Console.WriteLine("Умеренный дождь");
+            else
+                Console.WriteLine("Сильный дождь");
+        }
+        else
+        {
+            Console.WriteLine("Некорректный ввод. Пожалуйста, введите число.");
+        }
+    }
+    
+    static void DetermineTemperatureComfort()
+    {
+        Console.Write("Введите температуру воздуха (в °C): ");
+        if (double.TryParse(Console.ReadLine(), out double temperature))
+        {
+            string comfort = temperature > 25 ? "Жарко" :
+                            temperature < 10 ? "Холодно" :
+                            "Комфортно";
+            Console.WriteLine(comfort);
+        }
+        else
+        {
+            Console.WriteLine("Некорректный ввод. Пожалуйста, введите число.");
+        }
+    }
+}
