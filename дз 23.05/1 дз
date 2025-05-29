@@ -1,18 +1,18 @@
 1. Интерфейс IPaymentProcessor (IPaymentProcessor.cs)
-csharp
+
 public interface IPaymentProcessor
 {
     void ProcessPayment(decimal amount);
     void RefundPayment(decimal amount, string transactionId);
 }
 2. Интерфейс IPaymentValidator (IPaymentValidator.cs)
-csharp
+
 public interface IPaymentValidator
 {
     bool ValidatePayment(decimal amount);
 }
 3. PayPalProcessor (PayPalProcessor.cs)
-csharp
+
 public class PayPalProcessor : IPaymentProcessor
 {
     public void ProcessPayment(decimal amount)
@@ -26,7 +26,7 @@ public class PayPalProcessor : IPaymentProcessor
     }
 }
 4. CreditCardProcessor (CreditCardProcessor.cs)
-csharp
+
 public class CreditCardProcessor : IPaymentProcessor, IPaymentValidator
 {
     public void ProcessPayment(decimal amount)
@@ -46,7 +46,7 @@ public class CreditCardProcessor : IPaymentProcessor, IPaymentValidator
     }
 }
 5. CryptoCurrencyProcessor (CryptoCurrencyProcessor.cs)
-csharp
+
 public class CryptoCurrencyProcessor : IPaymentProcessor
 {
     public void ProcessPayment(decimal amount)
@@ -60,7 +60,7 @@ public class CryptoCurrencyProcessor : IPaymentProcessor
     }
 }
 6. PaymentService (PaymentService.cs)
-csharp
+
 public class PaymentService
 {
     private readonly IPaymentProcessor _paymentProcessor;
