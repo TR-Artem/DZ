@@ -1,0 +1,128 @@
+1. Абстрактный класс Reservation (Reservation.cs)
+
+public abstract class Reservation
+{
+    public string ReservationID { get; set; }
+    public string CustomerName { get; set; }
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+
+    public abstract decimal CalculatePrice();
+
+    public virtual void DisplayDetails()
+    {
+        Console.WriteLine($"Reservation ID: {ReservationID}");
+        Console.WriteLine($"Customer: {CustomerName}");
+        Console.WriteLine($"Period: {StartDate:d} to {EndDate:d}");
+    }
+}
+2. HotelReservation (HotelReservation.cs)
+
+public class HotelReservation : Reservation
+{
+    public string RoomType { get; set; }
+    public string MealPlan { get; set; }
+
+    public override decimal CalculatePrice()
+    {
+        // Простая логика расчета цены
+        decimal basePrice = (EndDate - StartDate).Days * 100;
+        decimal roomTypeMultiplier = RoomType == "Deluxe" ? 1.5m : 1m;
+        decimal mealPlanCost = MealPlan == "Full Board" ? 50 : 20;
+        
+        return basePrice * roomTypeMultiplier + mealPlanCost * (EndDate - StartDate).Days;
+    }
+
+    public override void DisplayDetails()
+    {
+        base.DisplayDetails();
+        Console.WriteLine($"Room Type: {RoomType}");
+        Console.WriteLine($"Meal Plan: {MealPlan}");
+        Console.WriteLine($"Total Price: {CalculatePrice():C}");
+    }
+}
+3. FlightReservation (FlightReservation.cs)
+
+public class FlightReservation : Reservation
+{
+    public string DepartureAirport { get; set; }
+    public string ArrivalAirport { get; set; }
+
+    public override decimal CalculatePrice()
+    {
+        // Простая логика расчета цены
+        return (EndDate - StartDate).Days > 7 ? 500 : 300;
+    }
+
+    public override void DisplayDetails()
+    {
+        base.DisplayDetails();
+        Console.WriteLine($"Flight: {DepartureAirport} → {ArrivalAirport}");
+        Console.WriteLine($"Ticket Price: {CalculatePrice():C}");
+    }
+}
+4. CarRentalReservation (CarRentalReservation.cs)
+
+public class CarRentalReservation : Reservation
+{
+    public string CarType { get; set; }
+    public string InsuranceOptions { get; set; }
+
+    public override decimal CalculatePrice()
+    {
+        // Простая логика расчета цены
+        decimal basePrice = (EndDate - StartDate).Days * 50;
+        decimal carTypeMultiplier = CarType == "SUV" ? 1.5m : 1m;
+        decimal insuranceCost = InsuranceOptions == "Full Coverage" ? 30 : 10;
+        
+        return basePrice * carTypeMultiplier + insuranceCost * (EndDate - StartDate).Days;
+    }
+
+    public override void DisplayDetails()
+    {
+        base.DisplayDetails();
+        Console.WriteLine($"Car Type: {CarType}");
+        Console.WriteLine($"Insurance: {InsuranceOptions}");
+        Console.WriteLine($"Total Cost: {CalculatePrice():C}");
+    }
+}
+5. BookingSystem (BookingSystem.cs)
+
+public class BookingSystem
+{
+    private List<Reservation> _reservations = new List<Reservation>();
+
+    public Reservation CreateReservation(string reservationType)
+    {
+        Reservation reservation = reservationType switch
+        {
+            "Hotel" => new HotelReservation(),
+            "Flight" => new FlightReservation(),
+            "Car" => new CarRentalReservation(),
+            _ => throw new ArgumentException("Invalid reservation type")
+        };
+
+        reservation.ReservationID = Guid.NewGuid().ToString();
+        _reservations.Add(reservation);
+        return reservation;
+    }
+
+    public void CancelReservation(string reservationId)
+    {
+        var reservation = _reservations.FirstOrDefault(r => r.ReservationID == reservationId);
+        if (reservation != null)
+        {
+            _reservations.Remove(reservation);
+            Console.WriteLine($"Reservation {reservationId} cancelled");
+        }
+        else
+        {
+            Console.WriteLine($"Reservation {reservationId} not found");
+        }
+    }
+
+    public decimal GetTotalBookingValue()
+    {
+        return _reservations.Sum(r => r.CalculatePrice());
+    }
+}
